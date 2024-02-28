@@ -14,7 +14,7 @@ func NewPageBySize(block_Size uint64) *Page {
 	}
 }
 
-func NewPageFromBytes(bytes []byte) *Page {
+func NewPageByBytes(bytes []byte) *Page {
 	return &Page{
 		buffer: bytes,
 	}

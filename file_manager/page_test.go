@@ -2,7 +2,6 @@ package file_manager
 
 import (
 	"testing"
-
 	"github.com/stretchr/testify/require"
 )
 
@@ -34,5 +33,16 @@ func TestSetGetString(t *testing.T) {
 }
 
 func TestMaxLengthForString(t *testing.T) {
-	s :=
+	str := "hello world"
+	s_len := uint64(len([]byte(str)))
+	page := NewPageBySize(256)
+	s_len_got := page.MaxLengthForString(str)
+	require.Equal(t, s_len+8, s_len_got)
+}
+
+func TestGetContent(t *testing.T) {
+	bs := []byte{1, 2, 3, 4, 5, 6}
+	page := NewPageByBytes(bs)
+	bs_got := page.contents()
+	require.Equal(t, bs, bs_got)
 }
