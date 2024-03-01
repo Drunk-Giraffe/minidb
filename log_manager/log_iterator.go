@@ -51,3 +51,4 @@ func (it *LogIterator) Next() []byte {
 
 func (it *LogIterator) HasNext() bool {
 	return it.blk.BlockNum() > 0 || it.current_pos < it.file_manager.BlockSize()
+}
