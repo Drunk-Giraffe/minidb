@@ -12,7 +12,7 @@ type Buffer struct {
 	contents *fmgr.Page
 	blk *fmgr.BlockID
 	pins uint32		//锁定次数
-	txnum int32		//交易号
+	txnum int32		//事务号
 	lsn  uint64		//日志序列号
 }
 

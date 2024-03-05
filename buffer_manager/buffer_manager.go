@@ -36,7 +36,7 @@ func (bm *BufferManager) Available() uint32 {
 }
 
 func (bm *BufferManager) FlushAll(txnum int32) {
-	//将给定的交易号的数据修改写入磁盘
+	//将给定的事务号的数据修改写入磁盘
 	bm.mu.Lock()
 	defer bm.mu.Unlock()
 

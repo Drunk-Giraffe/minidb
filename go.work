@@ -5,4 +5,5 @@ use (
 	./file_manager
 	./log_manager
 	./buffer_manager
+	./tx
 )
