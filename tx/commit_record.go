@@ -11,7 +11,7 @@ type CommitRecord struct {
 }
 
 func NewCommitRecord(p *fm.Page) *CommitRecord {
-	txID := p.GetInt(uint64(8))
+	txID := uint64(p.GetInt(uint64(8)))
 	return &CommitRecord{
 		txID: txID,
 	}
@@ -29,12 +29,16 @@ func (c *CommitRecord) ToString() string {
 	return fmt.Sprintf("<COMMIT %d>", c.txID)
 }
 
+func (c *CommitRecord) Undo(tx TransactionInterface) {
+	//不需要做任何事情
+}
+
 func WriteCommitLog(lgmr *lm.LogManager, txID uint64) (uint64, error) {
 
 	rec := make([]byte, 16)
 
 	p := fm.NewPageByBytes(rec)
-	p.SetInt(0, uint64(COMMIT))
-	p.SetInt(8, txID)
+	p.SetInt(0, int64(COMMIT))
+	p.SetInt(8, int64(txID))
 	return lgmr.AppendLogRecord(rec)
 }

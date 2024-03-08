@@ -2,12 +2,13 @@ package file_manager
 
 import (
 	"testing"
+
 	"github.com/stretchr/testify/require"
 )
 
 func TestSetGetInt(t *testing.T) {
 	page := NewPageBySize(256)
-	val := uint64(1234)
+	val := int64(1234)
 	offset := uint64(23)
 	page.SetInt(offset, val)
 	val_got := page.GetInt(offset)

@@ -24,7 +24,7 @@ func (l *LogManager) appendNewBlock() (*fm.BlockID, error) {
 
 	// 日志自底向上写入，所以要把写入内容的偏移量写在缓冲区的前8个字节
 
-	l.log_page.SetInt(0, uint64(l.file_manager.BlockSize()))
+	l.log_page.SetInt(0, int64(l.file_manager.BlockSize()))
 	l.file_manager.Write(&blk, l.log_page)
 	return &blk, nil
 }
@@ -88,7 +88,7 @@ func (l *LogManager) AppendLogRecord(log_record []byte) (uint64, error) {
 
 	boundary := l.log_page.GetInt(0)
 	record_size := uint64(len(log_record))
-	bytes_needed := uint64(record_size + 8)
+	bytes_needed := int64(record_size + 8)
 	var err error
 	if int(boundary-bytes_needed) < 8 {
 		//缓冲区剩余空间不足,先把缓冲区的日志写入磁盘
@@ -106,7 +106,7 @@ func (l *LogManager) AppendLogRecord(log_record []byte) (uint64, error) {
 	}
 
 	record_pos := boundary - bytes_needed
-	l.log_page.SetBytes(record_pos, log_record)
+	l.log_page.SetBytes(uint64(record_pos), log_record)
 	l.log_page.SetInt(0, record_pos)
 
 	l.latest_lsn++

@@ -6,37 +6,37 @@ import (
 	lg "log_manager"
 )
 
-type RollBackRecord struct {
-	tx_num uint64
+type RollbackRecord struct {
+	txID uint64
 }
 
-func NewRollBackRecord(p *fm.Page) *RollBackRecord {
-	return &RollBackRecord{
-		tx_num: p.GetInt(uint64(8)),
+func NewRollbackRecord(p *fm.Page) *RollbackRecord {
+	return &RollbackRecord{
+		txID: uint64(p.GetInt(uint64(8))),
 	}
 }
 
-func (r *RollBackRecord) Op() RECORD_TYPE {
+func (r *RollbackRecord) Op() RECORD_TYPE {
 	return ROLLBACK
 }
 
-func (r *RollBackRecord) TxNumber() uint64 {
-	return r.tx_num
+func (r *RollbackRecord) TxID() uint64 {
+	return r.txID
 }
 
-func (r *RollBackRecord) Undo() {
+func (r *RollbackRecord) Undo(tx TransactionInterface) {
 	//它没有回滚操作
 }
 
-func (r *RollBackRecord) ToString() string {
-	return fmt.Sprintf("<ROLLBACK %d>", r.tx_num)
+func (r *RollbackRecord) ToString() string {
+	return fmt.Sprintf("<ROLLBACK %d>", r.txID)
 }
 
-func WriteRollBackLog(lgmr *lg.LogManager, tx_num uint64) (uint64, error) {
+func WriteRollbackLog(lgmr *lg.LogManager, txID uint64) (uint64, error) {
 	rec := make([]byte, 2*uint64(8))
 	p := fm.NewPageByBytes(rec)
-	p.SetInt(0, uint64(ROLLBACK))
-	p.SetInt(uint64(8), tx_num)
+	p.SetInt(0, int64(ROLLBACK))
+	p.SetInt(uint64(8), int64(txID))
 
 	return lgmr.AppendLogRecord(rec)
 }

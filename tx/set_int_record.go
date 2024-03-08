@@ -9,7 +9,7 @@ import (
 type SetIntRecord struct {
 	txID   uint64
 	offset uint64
-	val    uint64
+	val    int64
 	blk    *fm.BlockID
 }
 
@@ -17,13 +17,13 @@ func NewSetIntRecord(p *fm.Page) *SetIntRecord {
 	txID := p.GetInt(uint64(8))
 	filename := p.GetString(uint64(16))
 	blk_id := p.GetInt(uint64(16 + p.MaxLengthForString(filename)))
-	blk := fm.NewBlockID(filename, blk_id)
+	blk := fm.NewBlockID(filename, uint64(blk_id))
 	offset := p.GetInt(uint64(24 + p.MaxLengthForString(filename)))
 	val := p.GetInt(uint64(32 + p.MaxLengthForString(filename)))
 
 	return &SetIntRecord{
-		txID:   txID,
-		offset: offset,
+		txID:   uint64(txID),
+		offset: uint64(offset),
 		val:    val,
 		blk:    blk,
 	}
@@ -47,7 +47,7 @@ func (s *SetIntRecord) Undo(tx TransactionInterface) {
 	tx.Unpin(s.blk)
 }
 
-func WriteSetIntLog(lgmr *lm.LogManager, txID uint64, blk *fm.BlockID, offset uint64, val uint64) (uint64, error) {
+func WriteSetIntLog(lgmr *lm.LogManager, txID uint64, blk *fm.BlockID, offset uint64, val int64) (uint64, error) {
 	p := fm.NewPageBySize(1)
 	t_pos := uint64(8)
 	f_pos := uint64(t_pos + 8)
@@ -58,11 +58,11 @@ func WriteSetIntLog(lgmr *lm.LogManager, txID uint64, blk *fm.BlockID, offset ui
 	rec := make([]byte, rec_len)
 
 	p = fm.NewPageByBytes(rec)
-	p.SetInt(0, uint64(SET_STRING))
-	p.SetInt(t_pos, txID)
+	p.SetInt(0, int64(SET_INT))
+	p.SetInt(t_pos, int64(txID))
 	p.SetString(f_pos, blk.FileName())
-	p.SetInt(b_pos, blk.BlockNum())
-	p.SetInt(o_pos, offset)
+	p.SetInt(b_pos, int64(blk.BlockNum()))
+	p.SetInt(o_pos, int64(offset))
 	p.SetInt(v_pos, val)
 
 	return lgmr.AppendLogRecord(rec)

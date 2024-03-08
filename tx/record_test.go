@@ -17,12 +17,12 @@ func TestStartRecord(t *testing.T) {
 
 	tx_num := uint64(1)
 	p := fm.NewPageBySize(32)
-	p.SetInt(uint64(0), uint64(START))
-	p.SetInt(uint64(8), tx_num)
+	p.SetInt(uint64(0), int64(START))
+	p.SetInt(uint64(8), int64(tx_num))
 	start_record := NewStartRecord(p, log_manager)
 	require.Equal(t, start_record.ToString(), fmt.Sprintf("<START %d>", tx_num))
 
-	_, err = start_record.WriteToLog()
+	_, err = start_record.WriteStartLog()
 	require.Nil(t, err)
 
 	iter := log_manager.Iterator()
@@ -63,7 +63,7 @@ func TestSetStringRecord(t *testing.T) {
 func TestSetIntRecord(t *testing.T) {
 	file_manager, _ := fm.NewFileManager("recordtest", 400)
 	log_manager, _ := lm.NewLogManager(file_manager, "setintlog")
-	val := uint64(888)
+	val := int64(888)
 	blk_id := uint64(1)
 	dummy_blk := fm.NewBlockID("dummy_id", blk_id)
 	tx_num := uint64(1)
@@ -79,8 +79,8 @@ func TestSetIntRecord(t *testing.T) {
 	set_int_record := NewSetIntRecord(log_page)
 	require.Equal(t, set_int_record.ToString(), fmt.Sprintf("<SETINT %d, %s, %d, %d>", tx_num, dummy_blk.FileName(), offset, val))
 
-	p.SetInt(offset, uint64(999))
-	p.SetInt(offset, uint64(777))
+	p.SetInt(offset, int64(999))
+	p.SetInt(offset, int64(777))
 	txStub := NewTxStub(p)
 	set_int_record.Undo(txStub)
 	recover_val := p.GetInt(offset)
@@ -88,16 +88,16 @@ func TestSetIntRecord(t *testing.T) {
 	require.Equal(t, recover_val, val)
 }
 
-func TestRollBackRecord(t *testing.T) {
+func TestRollbackRecord(t *testing.T) {
 	file_manager, _ := fm.NewFileManager("recordtest", 400)
 	log_manager, _ := lm.NewLogManager(file_manager, "rollback")
 	tx_num := uint64(13)
-	WriteRollBackLog(log_manager, tx_num)
+	WriteRollbackLog(log_manager, tx_num)
 	iter := log_manager.Iterator()
 	rec := iter.Next()
 	pp := fm.NewPageByBytes(rec)
 
-	roll_back_rec := NewRollBackRecord(pp)
+	roll_back_rec := NewRollbackRecord(pp)
 	expected_str := fmt.Sprintf("<ROLLBACK %d>", tx_num)
 
 	require.Equal(t, expected_str, roll_back_rec.ToString())
@@ -121,7 +121,7 @@ func TestCommitRecord(t *testing.T) {
 func TestCheckPointRecord(t *testing.T) {
 	file_manager, _ := fm.NewFileManager("recordtest", 400)
 	log_manager, _ := lm.NewLogManager(file_manager, "checkpoint")
-	WriteCheckPointToLog(log_manager)
+	WriteCheckPointLog(log_manager)
 	iter := log_manager.Iterator()
 	rec := iter.Next()
 	pp := fm.NewPageByBytes(rec)

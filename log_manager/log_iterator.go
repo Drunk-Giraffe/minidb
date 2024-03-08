@@ -31,7 +31,7 @@ func (it *LogIterator) moveToBlock(blk *fm.BlockID) error {
 	if err != nil {
 		return err
 	}
-	it.boundary = it.page.GetInt(0)
+	it.boundary = uint64(it.page.GetInt(0))
 	it.current_pos = it.boundary
 	return nil
 }

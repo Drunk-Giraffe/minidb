@@ -20,17 +20,23 @@ func NewPageByBytes(bytes []byte) *Page {
 	}
 }
 
-func (p *Page) GetInt(offset uint64) uint64 {
-	return binary.LittleEndian.Uint64(p.buffer[offset : offset+8])
+func (p *Page) GetInt(offset uint64) int64 {
+	return int64(binary.LittleEndian.Uint64(p.buffer[offset : offset+8]))
 }
 
-func (p *Page) SetInt(offset uint64, num uint64) {
-	copy(p.buffer[offset:offset+8], uint64ToByteArray(num))
+func (p *Page) SetInt(offset uint64, num int64) {
+	copy(p.buffer[offset:offset+8], int64ToByteArray(num))
 }
 
 func uint64ToByteArray(num uint64) []byte {
 	bytes := make([]byte, 8)
 	binary.LittleEndian.PutUint64(bytes, num)
+	return bytes
+}
+
+func int64ToByteArray(num int64) []byte {
+	bytes := make([]byte, 8)
+	binary.LittleEndian.PutUint64(bytes, uint64(num))
 	return bytes
 }
 

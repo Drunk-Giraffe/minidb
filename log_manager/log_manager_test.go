@@ -15,7 +15,7 @@ func makeRecord(s string, n uint64) []byte {
 	b := make([]byte, uint64(npos+8))
 	p = fm.NewPageByBytes(b)
 	p.SetString(0, s)
-	p.SetInt(npos, n)
+	p.SetInt(npos, int64(n))
 	return b
 }
 

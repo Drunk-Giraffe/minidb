@@ -2,6 +2,7 @@ package file_manager
 
 import (
 	"testing"
+
 	"github.com/stretchr/testify/require"
 )
 
@@ -14,7 +15,7 @@ func TestFileManager(t *testing.T) {
 	page1.SetString(pos1, s)
 	size := page1.MaxLengthForString(s)
 	pos2 := pos1 + size
-	val := uint64(1234)
+	val := int64(1234)
 	page1.SetInt(pos2, val)
 
 	fm.Write(blk, page1)
