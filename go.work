@@ -2,9 +2,10 @@ go 1.22.0
 
 use (
 	.
+	./buffer_manager
 	./file_manager
 	./log_manager
-	./buffer_manager
-	./tx
+	./metadata_manager
 	./record_manager
+	./tx
 )
