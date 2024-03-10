@@ -19,7 +19,7 @@ func NextTxID() int32 {
 }
 
 type Transaction struct {
-	//concur_mgr *ConcurrentManager
+	concur_mgr       *ConcurrencyManager
 	recovery_manager *RecoveryManager
 	file_manager     *fm.FileManager
 	log_manager      *lm.LogManager
@@ -39,14 +39,16 @@ func NewTransaction(fm *fm.FileManager, lm *lm.LogManager, bm *bm.BufferManager)
 	}
 
 	//创建并发管理器
+	tx.concur_mgr = NewConcurrencyManager()
 	//创建恢复管理器
 	tx.recovery_manager = NewRecoveryManager(bm, lm, tx, tx_id)
 	return tx
 }
 
 func (tx *Transaction) Commit() {
+	tx.concur_mgr.Release()
 	//提交事务
-	//tx.recovery_manager.Commit()
+	tx.recovery_manager.Commit()
 	r := fmt.Sprintf("transaction %d commited", tx.tx_id)
 	fmt.Println(r)
 
@@ -56,6 +58,8 @@ func (tx *Transaction) Commit() {
 }
 
 func (tx *Transaction) Rollback() {
+	//释放并发管理器
+	tx.concur_mgr.Release()
 	//回滚事务
 	tx.recovery_manager.Rollback()
 	r := fmt.Sprintf("transaction %d rollbacked", tx.tx_id)
@@ -87,7 +91,10 @@ func (tx *Transaction) buffer_not_exist(block_id *fm.BlockID) error {
 
 func (tx *Transaction) GetInt(block_id *fm.BlockID, offset uint64) (int64, error) {
 	//调用并发管理器加shared锁
-	//tx.concur_mgr.Slock(block_id)
+	err := tx.concur_mgr.Slock(block_id)
+	if err != nil {
+		return -1, err
+	}
 	buffer := tx.my_buffers.GetBuffer(block_id)
 	if buffer == nil {
 		return -1, tx.buffer_not_exist(block_id)
@@ -97,7 +104,10 @@ func (tx *Transaction) GetInt(block_id *fm.BlockID, offset uint64) (int64, error
 
 func (tx *Transaction) GetString(block_id *fm.BlockID, offset uint64) (string, error) {
 	//调用并发管理器加shared锁
-	//tx.concur_mgr.Slock(block_id)
+	err := tx.concur_mgr.Slock(block_id)
+	if err != nil {
+		return "", err
+	}
 	buffer := tx.my_buffers.GetBuffer(block_id)
 	if buffer == nil {
 		return "", tx.buffer_not_exist(block_id)
@@ -107,17 +117,20 @@ func (tx *Transaction) GetString(block_id *fm.BlockID, offset uint64) (string, e
 
 func (tx *Transaction) SetInt(block_id *fm.BlockID, offset uint64, val int64, shouldLog bool) error {
 	//调用并发管理器加exclusive锁
-	//tx.concur_mgr.Xlock(block_id)
+	err1 := tx.concur_mgr.Xlock(block_id)
+	if err1 != nil {
+		return err1
+	}
 	buffer := tx.my_buffers.GetBuffer(block_id)
 	if buffer == nil {
 		return tx.buffer_not_exist(block_id)
 	}
 	var lsn uint64
-	var err error
+	var err2 error
 	if shouldLog {
-		lsn, err = tx.recovery_manager.SetInt(buffer, offset)
-		if err != nil {
-			return err
+		lsn, err2 = tx.recovery_manager.SetInt(buffer, offset)
+		if err2 != nil {
+			return err2
 		}
 	}
 	p := buffer.Contents()
@@ -129,17 +142,20 @@ func (tx *Transaction) SetInt(block_id *fm.BlockID, offset uint64, val int64, sh
 
 func (tx *Transaction) SetString(block_id *fm.BlockID, offset uint64, val string, shouldLog bool) error {
 	//调用并发管理器加exclusive锁
-	//tx.concur_mgr.Xlock(block_id)
+	err1 := tx.concur_mgr.Xlock(block_id)
+	if err1 != nil {
+		return err1
+	}
 	buffer := tx.my_buffers.GetBuffer(block_id)
 	if buffer == nil {
 		return tx.buffer_not_exist(block_id)
 	}
 	var lsn uint64
-	var err error
+	var err2 error
 	if shouldLog {
-		lsn, err = tx.recovery_manager.SetString(buffer, offset)
-		if err != nil {
-			return err
+		lsn, err2 = tx.recovery_manager.SetString(buffer, offset)
+		if err2 != nil {
+			return err2
 		}
 	}
 	p := buffer.Contents()
@@ -149,23 +165,29 @@ func (tx *Transaction) SetString(block_id *fm.BlockID, offset uint64, val string
 	return nil
 }
 
-func (tx *Transaction) Size(file_name string) uint64 {
+func (tx *Transaction) Size(file_name string) (int64, error) {
 	//调用并发管理器加shared锁
-	//dummy_blk := fm.NewBlockID(file_name, uint64(END_OF_FILE))
-	//tx.concur_mgr.Slock(dummy_blk)
+	dummy_blk := fm.NewBlockID(file_name, uint64(0))
+	err := tx.concur_mgr.Slock(dummy_blk)
+	if err != nil {
+		return -1, err
+	}
 	s, _ := tx.file_manager.Size(file_name)
-	return s
+	return int64(s), nil
 }
 
-func (tx *Transaction) Append(file_name string) *fm.BlockID {
+func (tx *Transaction) Append(file_name string) (*fm.BlockID, error) {
 	//调用并发管理器加exclusive锁
-	//dummy_blk := fm.NewBlockID(file_name, uint64(END_OF_FILE))
-	//tx.concur_mgr.Xlock(dummy_blk)
+	dummy_blk := fm.NewBlockID(file_name, uint64(0))
+	err := tx.concur_mgr.Slock(dummy_blk)
+	if err != nil {
+		return nil, err
+	}
 	blk, err := tx.file_manager.Append(file_name)
 	if err != nil {
-		return nil
+		return nil, err
 	}
-	return &blk
+	return &blk, nil
 }
 
 func (tx *Transaction) BlockSize() uint64 {

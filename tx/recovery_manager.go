@@ -122,7 +122,6 @@ func (rm *RecoveryManager) doRollback() {
 	}
 }
 
-
 func (rm *RecoveryManager) doRecover() {
 	finishedTxs := make(map[uint64]bool)
 	//从日志文件中读取所有的记录
@@ -146,4 +145,3 @@ func (rm *RecoveryManager) doRecover() {
 		}
 	}
 }
-

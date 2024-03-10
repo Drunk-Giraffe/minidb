@@ -127,7 +127,7 @@ func TestCheckPointRecord(t *testing.T) {
 	pp := fm.NewPageByBytes(rec)
 	val := pp.GetInt(0)
 
-	require.Equal(t, val, uint64(CHECKPOINT))
+	require.Equal(t, uint64(val), uint64(CHECKPOINT))
 
 	check_point_rec := NewCheckPointRecord()
 	expected_str := "<CHECKPOINT>"

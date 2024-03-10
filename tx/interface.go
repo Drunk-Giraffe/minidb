@@ -17,8 +17,8 @@ type TransactionInterface interface {
 	SetInt(blk *fm.BlockID, offset uint64, value int64, shouldLog bool) error
 	SetString(blk *fm.BlockID, offset uint64, value string, shouldLog bool) error
 	AvailableBuffers() uint64
-	Size(filename string) uint64
-	Append(filename string) *fm.BlockID
+	Size(filename string) (int64, error)
+	Append(filename string) (*fm.BlockID, error)
 	BlockSize() uint64
 }
 

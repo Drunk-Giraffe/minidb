@@ -6,4 +6,5 @@ use (
 	./log_manager
 	./buffer_manager
 	./tx
+	./record_manager
 )
