@@ -118,10 +118,13 @@ func (tx *Transaction) GetString(block_id *fm.BlockID, offset uint64) (string, e
 func (tx *Transaction) SetInt(block_id *fm.BlockID, offset uint64, val int64, shouldLog bool) error {
 	//调用并发管理器加exclusive锁
 	err1 := tx.concur_mgr.Xlock(block_id)
+	fmt.Println(block_id)
 	if err1 != nil {
 		return err1
 	}
+
 	buffer := tx.my_buffers.GetBuffer(block_id)
+
 	if buffer == nil {
 		return tx.buffer_not_exist(block_id)
 	}
@@ -136,7 +139,7 @@ func (tx *Transaction) SetInt(block_id *fm.BlockID, offset uint64, val int64, sh
 	p := buffer.Contents()
 	p.SetInt(offset, val)
 	buffer.SetModified(tx.tx_id, lsn)
-
+	fmt.Println("set int success")
 	return nil
 }
 
@@ -165,21 +168,21 @@ func (tx *Transaction) SetString(block_id *fm.BlockID, offset uint64, val string
 	return nil
 }
 
-func (tx *Transaction) Size(file_name string) (int64, error) {
+func (tx *Transaction) Size(file_name string) (uint64, error) {
 	//调用并发管理器加shared锁
-	dummy_blk := fm.NewBlockID(file_name, uint64(0))
+	dummy_blk := fm.NewBlockID(file_name, uint64(END_OF_FILE))
 	err := tx.concur_mgr.Slock(dummy_blk)
 	if err != nil {
-		return -1, err
+		return 0, err
 	}
 	s, _ := tx.file_manager.Size(file_name)
-	return int64(s), nil
+	return s, nil
 }
 
 func (tx *Transaction) Append(file_name string) (*fm.BlockID, error) {
 	//调用并发管理器加exclusive锁
-	dummy_blk := fm.NewBlockID(file_name, uint64(0))
-	err := tx.concur_mgr.Slock(dummy_blk)
+	dummy_blk := fm.NewBlockID(file_name, uint64(END_OF_FILE))
+	err := tx.concur_mgr.Xlock(dummy_blk)
 	if err != nil {
 		return nil, err
 	}

@@ -65,3 +65,7 @@ func (layout *Layout) lengthInBytes(field_name string) int {
 		return int(p.MaxLengthForString(dummy_str))
 	}
 }
+
+func (layout *Layout) SlotSize() int {
+	return layout.slot_size
+}

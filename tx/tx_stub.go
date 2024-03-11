@@ -57,7 +57,7 @@ func (t *TxStub) AvailableBuffers() uint64 {
 	return 0
 }
 
-func (t *TxStub) Size(_ string) (int64, error) {
+func (t *TxStub) Size(_ string) (uint64, error) {
 	return 0, nil
 }
 

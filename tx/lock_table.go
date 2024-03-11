@@ -96,15 +96,16 @@ func NewLockTable() *LockTable {
 }
 
 func (lt *LockTable) initWaitingOnBlock(blk *fm.BlockID) {
-	_, ok := lt.notify_wg[*blk]
+	_, ok := lt.notify_chan[*blk]
+	if !ok {
+		lt.notify_chan[*blk] = make(chan struct{})
+	}
+
+	_, ok = lt.notify_wg[*blk]
 	if !ok {
 		lt.notify_wg[*blk] = &sync.WaitGroup{}
 	}
 
-	_, ok = lt.notify_chan[*blk]
-	if !ok {
-		lt.notify_chan[*blk] = make(chan struct{})
-	}
 }
 
 func (lt *LockTable) Slock(blk *fm.BlockID) error {
@@ -157,10 +158,10 @@ func (lt *LockTable) Unlock(blk *fm.BlockID) {
 	defer lt.method_lock.Unlock()
 
 	val := lt.getLockValue(blk)
-	if val >= 1 {
+	if val > 1 {
 		lt.lock_map[*blk] = val - 1
 	} else {
-		lt.lock_map[*blk] = 0
+		delete(lt.lock_map, *blk)
 		//通知所有等待给定区块的线程从Wait中恢复
 		s := fmt.Sprintf("unlock by blk: +%v\n", *blk)
 		fmt.Println(s)
@@ -169,15 +170,15 @@ func (lt *LockTable) Unlock(blk *fm.BlockID) {
 }
 
 func (lt *LockTable) hasXlock(blk *fm.BlockID) bool {
-	return lt.getLockValue(blk) == -1
+	return lt.getLockValue(blk) < 0
 }
 
 func (lt *LockTable) hasOtherSlock(blk *fm.BlockID) bool {
-	return lt.getLockValue(blk) > 0
+	return lt.getLockValue(blk) > 1
 }
 
 func (lt *LockTable) waitingTooLong(start time.Time) bool {
-	return time.Since(start) >= MAX_WAITING_TIME*time.Second
+	return time.Since(start).Seconds() >= MAX_WAITING_TIME
 }
 
 func (lt *LockTable) getLockValue(blk *fm.BlockID) int64 {

@@ -3,6 +3,7 @@ package buffer_manager
 import (
 	"errors"
 	fmgr "file_manager"
+	"fmt"
 	lmgr "log_manager"
 	"sync"
 	"time"
@@ -53,7 +54,9 @@ func (bm *BufferManager) Pin(blk *fmgr.BlockID) (*Buffer, error) {
 	defer bm.mu.Unlock()
 
 	start_time := time.Now()
+	fmt.Println("pin ", blk)
 	buffer := bm.tryPin(blk)
+
 	for buffer == nil && !bm.waitTooLong(start_time) {
 		time.Sleep(MAX_TIME_WAIT * time.Second)
 		buffer = bm.tryPin(blk)
@@ -65,7 +68,7 @@ func (bm *BufferManager) Pin(blk *fmgr.BlockID) (*Buffer, error) {
 	return buffer, nil
 }
 
-//目前unpin不会触发异步写回磁盘，只是释放缓存
+// 目前unpin不会触发异步写回磁盘，只是释放缓存
 func (bm *BufferManager) Unpin(buffer *Buffer) {
 	//释放缓存
 	bm.mu.Lock()
@@ -76,25 +79,27 @@ func (bm *BufferManager) Unpin(buffer *Buffer) {
 	buffer.Unpin()
 	if !buffer.IsPinned() {
 		bm.buffer_available++
-		//notifyAll() //唤醒等待的线程
+		// notifyAll() //唤醒等待的线程
 	}
 }
 
-
 func (bm *BufferManager) waitTooLong(start_time time.Time) bool {
 	//判断是否等待时间过长
-	return time.Since(start_time) >= MAX_TIME_WAIT*time.Second
+	return time.Since(start_time).Seconds() >= MAX_TIME_WAIT
 }
 
 func (bm *BufferManager) tryPin(blk *fmgr.BlockID) *Buffer {
+	fmt.Println("blk: ", blk)
 	//判断给定block是否已经在缓存中
 	buffer := bm.findExistingBuffer(blk)
 	if buffer == nil {
 		buffer = bm.chooseUnpinnedBuffer()
+		fmt.Println("blk: ", blk)
 		if buffer == nil {
 			return nil
 		}
 		buffer.AssignToBlock(blk)
+		fmt.Println("buffer: ", buffer)
 	}
 
 	if !buffer.IsPinned() {
@@ -109,7 +114,7 @@ func (bm *BufferManager) findExistingBuffer(blk *fmgr.BlockID) *Buffer {
 	//判断给定block是否已经在缓存中
 	for _, buffer := range bm.buffer_pool {
 		block := buffer.Block()
-		if  block != nil && block.Equal(blk){
+		if block != nil && block.Equal(blk) {
 			return buffer
 		}
 	}
@@ -125,5 +130,3 @@ func (bm *BufferManager) chooseUnpinnedBuffer() *Buffer {
 	}
 	return nil
 }
-
-

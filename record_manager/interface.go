@@ -22,7 +22,7 @@ type LayoutInterface interface {
 	SlotSize() int
 }
 
-type RecordManager interface {
+type RecordManagerInterface interface {
 	Block() *fm.BlockID
 	GetInt(slot int, field_name string) int
 	GetString(slot int, field_name string) string
@@ -32,4 +32,26 @@ type RecordManager interface {
 	Delete(slot int)          //删除一个记录
 	NextAfter(slot int) int   //返回slot之后的第一个flag为1记录
 	InsertAfter(slot int) int //返回slot之后的第一个flag为0记录
+}
+
+type RecordIdentifierInterface interface {
+	BlockID() int
+	Slot() int
+	ToString() string
+}
+
+type TableScanInterface interface {
+	Close()
+	HasField(field_name string) bool
+	PutBeforeFirst() //将指针放在第一条记录前
+	Next() bool
+	MoveToRid(rid RecordIdentifierInterface) //跳转到指定目录
+	Insert()
+
+	GetInt(field_name string) int
+	GetString(field_name string) string
+	SetInt(field_name string, value int)
+	SetString(field_name string, value string)
+	CurrentRID() RecordIdentifierInterface
+	Delete()
 }

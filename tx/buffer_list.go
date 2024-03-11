@@ -3,6 +3,7 @@ package tx
 import (
 	bm "buffer_manager"
 	fm "file_manager"
+	"fmt"
 )
 
 type BufferList struct {
@@ -27,6 +28,7 @@ func (bl *BufferList) GetBuffer(block_id *fm.BlockID) *bm.Buffer {
 
 func (bl *BufferList) Pin(block_id *fm.BlockID) error {
 	//如果给定的内存块被Pin了，那么把它加入到map中
+	fmt.Print("pin ", block_id)
 	buffer, err := bl.buffer_mgr.Pin(block_id)
 	if err != nil {
 		return err

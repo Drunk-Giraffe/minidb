@@ -5,24 +5,23 @@ import (
 	lmgr "log_manager"
 )
 
-
 type Buffer struct {
-	fm *fmgr.FileManager
-	lm *lmgr.LogManager
+	fm       *fmgr.FileManager
+	lm       *lmgr.LogManager
 	contents *fmgr.Page
-	blk *fmgr.BlockID
-	pins uint32		//锁定次数
-	txnum int32		//事务号
-	lsn  uint64		//日志序列号
+	blk      *fmgr.BlockID
+	pins     uint32 //锁定次数
+	txnum    int32  //事务号
+	lsn      uint64 //日志序列号
 }
 
 func NewBuffer(file_mgr *fmgr.FileManager, log_mgr *lmgr.LogManager) *Buffer {
-	
+
 	return &Buffer{
-		fm: file_mgr,
-		lm: log_mgr,
-		txnum: -1,
-		lsn: 0,
+		fm:       file_mgr,
+		lm:       log_mgr,
+		txnum:    -1,
+		lsn:      0,
 		contents: fmgr.NewPageBySize(file_mgr.BlockSize()),
 	}
 }
@@ -38,7 +37,7 @@ func (b *Buffer) Block() *fmgr.BlockID {
 func (b *Buffer) SetModified(txnum int32, lsn uint64) {
 	//如果上层组件修改了缓存数据，必须调用这个接口进行标记
 	b.txnum = txnum
-	if lsn>0 {
+	if lsn > 0 {
 		b.lsn = lsn
 	}
 }
@@ -62,7 +61,7 @@ func (b *Buffer) AssignToBlock(blk *fmgr.BlockID) {
 }
 
 func (b *Buffer) Flush() {
-	if b.txnum > 0 {
+	if b.txnum >= 0 {
 		b.lm.FlushByLSN(b.lsn)
 		b.fm.Write(b.blk, b.contents)
 		b.txnum = -1

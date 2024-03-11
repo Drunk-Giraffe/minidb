@@ -32,6 +32,7 @@ func (cm *ConcurrencyManager) Slock(blk *fm.BlockID) error {
 func (cm *ConcurrencyManager) Xlock(blk *fm.BlockID) error {
 	// _, ok := cm.lock_map[*blk]
 	if !cm.hasXlock(*blk) {
+		cm.Slock(blk)
 		err := cm.lock_table.Xlock(blk)
 		if err != nil {
 			return err

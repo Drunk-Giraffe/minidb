@@ -45,17 +45,17 @@ func (tm *TableManager) CreateTable(tableName string, schema *rm.Schema, tx *tx.
 	tcat := rm.NewTableScan(tx, "tblcat", tm.tcatLayout)
 	tcat.Insert()
 	tcat.SetString("table_name", tableName)
-	tcat.SetInt("slot_size", layout.LengthInBytes())
+	tcat.SetInt("slot_size", layout.SlotSize())
 	tcat.Close()
 
 	fcat := rm.NewTableScan(tx, "fldcat", tm.fcatLayout)
 	for _, field_name := range schema.Fields() {
 		fcat.Insert()
-		fcat.AddString("table_name", tableName)
-		fcat.AddString("field_name", field_name)
-		fcat.AddInt("type", int(schema.Type(field_name)))
-		fcat.AddInt("length", schema.Length(field_name))
-		fcat.AddInt("offset", layout.Offset(field_name))
+		fcat.SetString("table_name", tableName)
+		fcat.SetString("field_name", field_name)
+		fcat.SetInt("type", int(schema.Type(field_name)))
+		fcat.SetInt("length", schema.Length(field_name))
+		fcat.SetInt("offset", layout.Offset(field_name))
 	}
 	fcat.Close()
 }
