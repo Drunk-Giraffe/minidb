@@ -20,11 +20,14 @@ type RecordPage struct {
 }
 
 func NewRecordPage(tx *tx.Transaction, blk *fm.BlockID, layout LayoutInterface) *RecordPage {
-	return &RecordPage{
+	rp := &RecordPage{
 		tx:     tx,
 		blk:    blk,
 		layout: layout,
 	}
+	tx.Pin(blk)
+	return rp
+
 }
 
 func (r *RecordPage) offset(slot int) uint64 {
@@ -117,7 +120,10 @@ func (r *RecordPage) setFlag(slot int, flag SLOT_FLAG) {
 func (r *RecordPage) searchAfter(slot int, flag SLOT_FLAG) int {
 	slot += 1
 	for r.isValidSlot(slot) {
-		val, _ := r.tx.GetInt(r.blk, r.offset(slot))
+		val, err := r.tx.GetInt(r.blk, r.offset(slot))
+		if err != nil {
+			return -1
+		}
 		if SLOT_FLAG(val) == flag {
 			return slot
 		}
