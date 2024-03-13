@@ -4,8 +4,11 @@ use (
 	.
 	./buffer_manager
 	./file_manager
+	./lexer
 	./log_manager
 	./metadata_manager
+	./parser
+	./query
 	./record_manager
 	./tx
 )

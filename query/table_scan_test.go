@@ -1,4 +1,4 @@
-package record_manager
+package query
 
 import (
 	bm "buffer_manager"
@@ -8,7 +8,7 @@ import (
 	"math/rand"
 	"testing"
 	"tx"
-
+	"record_manager"
 	"github.com/stretchr/testify/require"
 )
 
@@ -18,11 +18,11 @@ func TestTableScanInsertAndDelete(t *testing.T) {
 	buffer_manager := bm.NewBufferManager(file_manager, log_manager, 3)
 
 	tx := tx.NewTransaction(file_manager, log_manager, buffer_manager)
-	sch := NewSchema()
+	sch := record_manager.NewSchema()
 
 	sch.AddIntField("A")
 	sch.AddStringField("B", 9)
-	layout := NewLayoutWithSchema(sch)
+	layout := record_manager.NewLayoutWithSchema(sch)
 	for _, field_name := range layout.Schema().Fields() {
 		offset := layout.Offset(field_name)
 		fmt.Printf("%s has offset %d\n", field_name, offset)
@@ -30,7 +30,7 @@ func TestTableScanInsertAndDelete(t *testing.T) {
 	fmt.Println("1. Creating a new table ")
 	ts := NewTableScan(tx, "T", layout)
 	fmt.Println("Filling the table with 50 random records")
-	ts.BeforeFirst()
+	ts.PointBeforeFirst()
 	val_for_field_A := make([]int, 0)
 	for i := 0; i < 50; i++ {
 
@@ -43,7 +43,7 @@ func TestTableScanInsertAndDelete(t *testing.T) {
 		fmt.Printf("inserting into slot %s: {%d , %s}\n", ts.GetRid().ToString(), n, s)
 	}
 
-	ts.BeforeFirst()
+	ts.PointBeforeFirst()
 	//测试插入的内容是否正确
 	slot := 0
 	for ts.Next() {
@@ -56,7 +56,7 @@ func TestTableScanInsertAndDelete(t *testing.T) {
 
 	fmt.Println("Deleting records with A-values < 25")
 	count := 0
-	ts.BeforeFirst()
+	ts.PointBeforeFirst()
 	for ts.Next() {
 		a := ts.GetInt("A")
 		b := ts.GetString("B")
@@ -68,7 +68,7 @@ func TestTableScanInsertAndDelete(t *testing.T) {
 	}
 
 	fmt.Println("Here are the remaining records:")
-	ts.BeforeFirst()
+	ts.PointBeforeFirst()
 	for ts.Next() {
 		a := ts.GetInt("A")
 		b := ts.GetString("B")

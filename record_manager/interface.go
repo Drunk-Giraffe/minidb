@@ -43,7 +43,7 @@ type RecordIdentifierInterface interface {
 type TableScanInterface interface {
 	Close()
 	HasField(field_name string) bool
-	PutBeforeFirst() //将指针放在第一条记录前
+	PutPointBeforeFirst() //将指针放在第一条记录前
 	Next() bool
 	MoveToRid(rid RecordIdentifierInterface) //跳转到指定目录
 	Insert()

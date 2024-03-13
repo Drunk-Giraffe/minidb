@@ -1,19 +1,20 @@
-package record_manager
+package query
 
 import (
 	fm "file_manager"
+	"record_manager"
 	"tx"
 )
 
 type TableScan struct {
 	tx           *tx.Transaction
-	layout       LayoutInterface
-	rm           RecordManagerInterface
+	layout       record_manager.LayoutInterface
+	rm           record_manager.RecordManagerInterface
 	file_name    string
 	current_slot int
 }
 
-func NewTableScan(tx *tx.Transaction, table_name string, layout LayoutInterface) *TableScan {
+func NewTableScan(tx *tx.Transaction, table_name string, layout record_manager.LayoutInterface) *TableScan {
 	ts := &TableScan{
 		tx:        tx,
 		layout:    layout,
@@ -39,7 +40,7 @@ func (ts *TableScan) Close() {
 	}
 }
 
-func (ts *TableScan) BeforeFirst() {
+func (ts *TableScan) PointBeforeFirst() {
 	ts.MoveToBlock(0)
 }
 
@@ -66,10 +67,12 @@ func (ts *TableScan) GetString(field_name string) string {
 }
 
 func (ts *TableScan) GetVal(field_name string) *Constant {
-	if ts.layout.Schema().Type(field_name) == INTEGER {
-		return NewConstantInt(ts.GetInt(field_name))
+	if ts.layout.Schema().Type(field_name) == record_manager.INTEGER {
+		ival := ts.GetInt(field_name)
+		return NewConstantWithInt(&ival)
 	} else {
-		return NewConstantString(ts.GetString(field_name))
+		sval := ts.GetString(field_name)
+		return NewConstantWithString(&sval)
 	}
 }
 
@@ -86,7 +89,7 @@ func (ts *TableScan) SetString(field_name string, val string) {
 }
 
 func (ts *TableScan) SetVal(field_name string, val *Constant) {
-	if ts.layout.Schema().Type(field_name) == INTEGER {
+	if ts.layout.Schema().Type(field_name) == record_manager.INTEGER {
 		ts.SetInt(field_name, val.AsInt())
 	} else {
 		ts.SetString(field_name, val.AsString())
@@ -109,20 +112,20 @@ func (ts *TableScan) Delete() {
 	ts.rm.Delete(ts.current_slot)
 }
 
-func (ts *TableScan) GetRid() RecordIdentifierInterface {
-	return NewRID(int(ts.rm.Block().BlockNum()), ts.current_slot)
+func (ts *TableScan) GetRid() record_manager.RecordIdentifierInterface {
+	return record_manager.NewRID(int(ts.rm.Block().BlockNum()), ts.current_slot)
 }
-func (ts *TableScan) MoveToRID(rid RecordIdentifierInterface) {
+func (ts *TableScan) MoveToRID(rid record_manager.RecordIdentifierInterface) {
 	ts.Close()
 	blk := fm.NewBlockID(ts.file_name, uint64(rid.BlockID()))
-	ts.rm = NewRecordPage(ts.tx, blk, ts.layout)
+	ts.rm = record_manager.NewRecordPage(ts.tx, blk, ts.layout)
 	ts.current_slot = rid.Slot()
 }
 
 func (ts *TableScan) MoveToBlock(bid int) {
 	ts.Close()
 	blk := fm.NewBlockID(ts.file_name, uint64(bid))
-	ts.rm = NewRecordPage(ts.tx, blk, ts.layout)
+	ts.rm = record_manager.NewRecordPage(ts.tx, blk, ts.layout)
 	ts.current_slot = -1
 }
 
@@ -132,7 +135,7 @@ func (ts *TableScan) MoveToNewBlock() {
 	if err != nil {
 		panic(err)
 	}
-	ts.rm = NewRecordPage(ts.tx, blk, ts.layout)
+	ts.rm = record_manager.NewRecordPage(ts.tx, blk, ts.layout)
 	ts.rm.Format()
 	ts.current_slot = -1
 }
