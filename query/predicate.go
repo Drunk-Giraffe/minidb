@@ -33,15 +33,15 @@ func (p *Predicate) IsSatisfied(s Scan) bool {
 	return true
 }
 
-// func (p *Predicate) ReductionFactor(plan Plan) int {
+func (p *Predicate) ReductionFactor(plan Plan) int {
 
-// 	factor := 1
-// 	for _, t := range p.terms {
-// 		factor *= t.ReductionFactor(plan)
-// 	}
+	factor := 1
+	for _, t := range p.terms {
+		factor *= t.ReductionFactor(plan)
+	}
 
-// 	return factor
-// }
+	return factor
+}
 
 func (p *Predicate) SelectedSubPred(sch *record_manager.Schema) *Predicate {
 	result := NewPredicate()

@@ -1,7 +1,7 @@
 package query
 
 import (
-	// "math"
+	"math"
 	"record_manager"
 )
 
@@ -27,35 +27,35 @@ func (t *Term) AppliesTo(sch *record_manager.Schema) bool {
 	return t.lhs.AppliesTo(sch) && t.rhs.AppliesTo(sch)
 }
 
-// func (t *Term) ReductionFactor(p *Plan) int {
-// 	//Plan是后面我们研究SQL解析执行时才创建的对象，
-// 	lhsName := ""
-// 	rhsName := ""
-// 	if t.lhs.IsFieldName() && t.rhs.IsFieldName() {
-// 		lhsName = t.lhs.AsFieldName()
-// 		rhsName = t.rhs.AsFieldName()
-// 		if p.DistanctValues(lhsName) > p.DistanctValues(rhsName) {
-// 			return p.DistanctValues(lhsName)
-// 		}
-// 		return p.DistanctValues(rhsName)
-// 	}
+func (t *Term) ReductionFactor(p Plan) int {
+	//Plan是后面我们研究SQL解析执行时才创建的对象，
+	lhsName := ""
+	rhsName := ""
+	if t.lhs.IsFieldName() && t.rhs.IsFieldName() {
+		lhsName = t.lhs.AsFieldName()
+		rhsName = t.rhs.AsFieldName()
+		if p.DistinctValues(lhsName) > p.DistinctValues(rhsName) {
+			return p.DistinctValues(lhsName)
+		}
+		return p.DistinctValues(rhsName)
+	}
 
-// 	if t.lhs.IsFieldName() {
-// 		lhsName = t.lhs.AsFieldName()
-// 		return p.DistanctValues(lhsName)
-// 	}
+	if t.lhs.IsFieldName() {
+		lhsName = t.lhs.AsFieldName()
+		return p.DistinctValues(lhsName)
+	}
 
-// 	if t.rhs.IsFieldName() {
-// 		rhsName = t.rhs.AsFieldName()
-// 		return p.DistanctValues(rhsName)
-// 	}
+	if t.rhs.IsFieldName() {
+		rhsName = t.rhs.AsFieldName()
+		return p.DistinctValues(rhsName)
+	}
 
-// 	if t.lhs.AsConstant().Equals(t.rhs.AsConstant()) {
-// 		return 1
-// 	} else {
-// 		return math.MaxInt
-// 	}
-// }
+	if t.lhs.AsConstant().Equals(t.rhs.AsConstant()) {
+		return 1
+	} else {
+		return math.MaxInt
+	}
+}
 
 func (t *Term) EquatesWithConstant(fldName string) *Constant {
 	if t.lhs.IsFieldName() && t.lhs.AsFieldName() == fldName && !t.rhs.IsFieldName() {

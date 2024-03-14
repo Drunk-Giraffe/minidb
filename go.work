@@ -8,6 +8,7 @@ use (
 	./log_manager
 	./metadata_manager
 	./parser
+	./planner
 	./query
 	./record_manager
 	./tx

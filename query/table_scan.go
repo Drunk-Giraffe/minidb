@@ -34,6 +34,10 @@ func NewTableScan(tx *tx.Transaction, table_name string, layout record_manager.L
 	return ts
 }
 
+func (ts *TableScan) GetScan() Scan {
+	return ts
+}
+
 func (ts *TableScan) Close() {
 	if ts.rm != nil {
 		ts.tx.Unpin(ts.rm.Block())

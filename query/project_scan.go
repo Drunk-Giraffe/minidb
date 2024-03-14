@@ -9,7 +9,7 @@ type ProjectScan struct {
 	fieldList []string
 }
 
-func NewProductionScan(s Scan, fieldList []string) *ProjectScan {
+func NewProjectScan(s Scan, fieldList []string) *ProjectScan {
 	return &ProjectScan{
 		scan:      s,
 		fieldList: fieldList,
@@ -61,4 +61,3 @@ func (p *ProjectScan) HasField(fieldName string) bool {
 func (p *ProjectScan) Close() {
 	p.scan.Close()
 }
-
