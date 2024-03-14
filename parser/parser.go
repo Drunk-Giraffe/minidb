@@ -7,8 +7,6 @@ import (
 	"record_manager"
 	"strconv"
 	"strings"
-
-	"golang.org/x/tools/go/analysis/passes/nilfunc"
 )
 
 type SQLParser struct {
@@ -43,10 +41,10 @@ func (sp *SQLParser) Constant() *query.Constant {
 		if err != nil {
 			panic(err)
 		}
-		return query.ConstantWithInt(i)
+		return query.NewConstantWithInt(&i)
 	case lexer.STRING:
 		s := strings.Clone(sp.sqlLexer.Lexeme)
-		return query.NewConstantWithString(s)
+		return query.NewConstantWithString(&s)
 	default:
 		panic("Expecting constant")
 	}
@@ -70,13 +68,7 @@ func (sp *SQLParser) Expression() *query.Expression {
 
 func (sp *SQLParser) Term() *query.Term {
 	lhs := sp.Expression()
-	tok, err := sp.sqlLexer.Scan()
-	if err != nil {
-		panic(err)
-	}
-	if tok.Tag != lexer.ASSIGN_OPERATOR {
-		panic("Expecting =")
-	}
+	sp.checkToken(lexer.ASSIGN_OPERATOR)
 
 	rhs := sp.Expression()
 	return query.NewTerm(lhs, rhs)
@@ -98,26 +90,13 @@ func (sp *SQLParser) Predicate() *query.Predicate {
 }
 
 func (sp *SQLParser) Query() *Querydata {
-	token, err := sp.sqlLexer.Scan()
-	if err != nil {
-		panic(err)
-	}
-
-	if token.Tag != lexer.SELECT {
-		panic("Expecting SELECT")
-	}
+	sp.checkToken(lexer.SELECT)
 
 	fields := sp.SelectList()
-	token, err = sp.sqlLexer.Scan()
-	if err != nil {
-		panic(err)
-	}
-	if token.Tag != lexer.FROM {
-		panic("Expecting FROM")
-	}
+	sp.checkToken(lexer.FROM)
 
 	tables := sp.TableList()
-	token, err = sp.sqlLexer.Scan()
+	token, err := sp.sqlLexer.Scan()
 	if err != nil {
 		panic(err)
 	}
@@ -130,7 +109,6 @@ func (sp *SQLParser) Query() *Querydata {
 	return NewQuerydata(fields, tables, pred)
 }
 
-
 func (sp *SQLParser) Updatecmd() interface{} {
 	token, err := sp.sqlLexer.Scan()
 	if err != nil {
@@ -138,34 +116,43 @@ func (sp *SQLParser) Updatecmd() interface{} {
 	}
 	if token.Tag == lexer.INSERT {
 		return sp.Insert()
-	}else if token.Tag == lexer.UPDATE {
-		return nil
-	}else if token.Tag == lexer.DELETE {
-		return nil
-	}else {
+	} else if token.Tag == lexer.UPDATE {
+		sp.sqlLexer.ReverseScan()
+		return sp.Modify()
+	} else if token.Tag == lexer.DELETE {
+		sp.sqlLexer.ReverseScan()
+		return sp.Delete()
+	} else {
 		sp.sqlLexer.ReverseScan()
 		return sp.Create()
 	}
 }
-func (sp *SQLParser) checkToken(t lexer.Tag) {
-	token, err := sp.sqlLexer.Scan()
-	if err != nil {
-		panic(err)
+
+func (sp *SQLParser) Modify() interface{} {
+	sp.checkToken(lexer.UPDATE)
+	sp.checkToken(lexer.ID)
+	tableName := sp.sqlLexer.Lexeme
+	sp.checkToken(lexer.SET)
+	_, field := sp.Field()
+	sp.checkToken(lexer.ASSIGN_OPERATOR)
+	value := sp.Expression()
+	pred := query.NewPredicate()
+	if sp.isMatch(lexer.WHERE) {
+		pred = sp.Predicate()
 	}
-	if token.Tag != t {
-		panic("token not match")
-	}
+	return NewModifyData(tableName, field, value, pred)
 }
 
-func (sp *SQLParser) isMatch(t lexer.Tag) bool {
-	token, err := sp.sqlLexer.Scan()
-	if err != nil {
-		panic(err)
+func (sp *SQLParser) Delete() interface{} {
+	sp.checkToken(lexer.DELETE)
+	sp.checkToken(lexer.FROM)
+	sp.checkToken(lexer.ID)
+	tableName := sp.sqlLexer.Lexeme
+	pred := query.NewPredicate()
+	if sp.isMatch(lexer.WHERE) {
+		pred = sp.Predicate()
 	}
-	if token.Tag != t {
-		return false
-	}
-	return true
+	return NewDeleteData(tableName, pred)
 }
 
 func (sp *SQLParser) Insert() interface{} {
@@ -183,83 +170,77 @@ func (sp *SQLParser) Insert() interface{} {
 	return NewInsertData(tableName, fields, vals)
 }
 
-
-
 func (sp *SQLParser) Create() interface{} {
+	sp.checkToken(lexer.CREATE)
 	token, err := sp.sqlLexer.Scan()
-	
-	if err != nil {
-		panic(err)
-	}
-	if token.Tag != lexer.CREATE {
-		panic("Expecting CREATE")
-	}
-	token, err = sp.sqlLexer.Scan()
 	if err != nil {
 		panic(err)
 	}
 	if token.Tag == lexer.TABLE {
 		return sp.CreateTable()
-	}else if token.Tag == lexer.View() {
-		return nil
-	}else {
-		return nil
+	} else if token.Tag == lexer.VIEW {
+		return sp.CreateView()
+	} else if token.Tag == lexer.INDEX {
+		return sp.CreateIndex()
 	}
+	return nil
 }
 
-func (sp *SQLParser) CreateTable() *CreateTableData {
-	token, err := sp.sqlLexer.Scan()
-	if err != nil {
-		panic(err)
-	}
-	if token.Tag != lexer.ID {
-		panic("Expecting table name")
-	}
+func (sp *SQLParser) CreateIndex() interface{} {
+	sp.checkToken(lexer.ID)
+	indexName := sp.sqlLexer.Lexeme
+	sp.checkToken(lexer.ON)
+	sp.checkToken(lexer.ID)
+	tableName := sp.sqlLexer.Lexeme
+	sp.checkToken(lexer.LEFT_BRACKET)
+	_, fieldName := sp.Field()
+	sp.checkToken(lexer.RIGHT_BRACKET)
+	return NewIndexData(indexName, tableName, fieldName)
+}
+
+func (sp *SQLParser) CreateView() interface{} {
+	sp.checkToken(lexer.ID)
+	view_name := sp.sqlLexer.Lexeme
+	sp.checkToken(lexer.AS)
+	query := sp.Query()
+	vd := NewViewData(view_name, query)
+	return vd
+
+}
+
+func (sp *SQLParser) CreateTable() interface{} {
+	sp.checkToken(lexer.ID)
 	table_name := sp.sqlLexer.Lexeme
-	token, err = sp.sqlLexer.Scan()
-	if err != nil {
-		panic(err)
-	}
-	if token.Tag != lexer.LEFT_BRACKET {
-		panic("Expecting (")
-	}
+	sp.checkToken(lexer.LEFT_BRACKET)
 
 	sch := sp.FieldDefs()
-	token, err = sp.sqlLexer.Scan()
-	if err != nil {
-		panic(err)
-	}
-
-	if token.Tag != lexer.RIGHT_BRACKET {
-		panic("Expecting )")
-	}
+	sp.checkToken(lexer.RIGHT_BRACKET)
 
 	return NewCreateTableData(table_name, sch)
 }
 
-func (sp *SQLParser) FieldDefs() *record_manager.Schema{
+func (sp *SQLParser) FieldDefs() *record_manager.Schema {
 	schema := sp.FieldDefs()
 	token, err := sp.sqlLexer.Scan()
 
-	if err != nil{
+	if err != nil {
 		panic(err)
 	}
 	if token.Tag == lexer.COMMA {
 		schema2 := sp.FieldDefs()
 		schema.AddAll(schema2)
-	}else {
+	} else {
 		sp.sqlLexer.ReverseScan()
 	}
 	return schema
 }
-
 
 func (sp *SQLParser) FieldDef() *record_manager.Schema {
 	_, field_name := sp.Field()
 	return sp.FieldType(field_name)
 }
 
-func (sp *SQLParser) FieldType(field_name string) *record_manager.Schema  {
+func (sp *SQLParser) FieldType(field_name string) *record_manager.Schema {
 	schema := record_manager.NewSchema()
 	token, err := sp.sqlLexer.Scan()
 	if err != nil {
@@ -267,31 +248,13 @@ func (sp *SQLParser) FieldType(field_name string) *record_manager.Schema  {
 	}
 	if token.Tag == lexer.INT {
 		schema.AddIntField(field_name)
-	}else if token.Tag == lexer.VARCHAR {
-		token, err = sp.sqlLexer.Scan()
-		if err != nil {
-			panic(err)
-		}
-		if token.Tag != lexer.LEFT_BRACKET {
-			panic("Expecting (")
-		}
-		token, err = sp.sqlLexer.Scan()
-		if err != nil {
-			panic(err)
-		}
-		if token.Tag != lexer.NUM {
-			panic("Expecting number")
-		}
+	} else if token.Tag == lexer.VARCHAR {
+		sp.checkToken(lexer.LEFT_BRACKET)
+		sp.checkToken(lexer.NUM)
 		num := sp.sqlLexer.Lexeme
-		field_len, err := strconv.Atoi(num)
+		field_len, _ := strconv.Atoi(num)
 		schema.AddStringField(field_name, field_len)
-		token, err = sp.sqlLexer.Scan()
-		if err != nil {
-			panic(err)
-		}
-		if token.Tag != lexer.RIGHT_BRACKET {
-			panic("Expecting )")
-		}
+		sp.checkToken(lexer.RIGHT_BRACKET)
 	}
 	return schema
 }
@@ -317,4 +280,52 @@ func (sp *SQLParser) constList() []*query.Constant {
 	}
 
 	return L
+}
+
+func (sp *SQLParser) checkToken(t lexer.Tag) {
+	token, err := sp.sqlLexer.Scan()
+	if err != nil {
+		panic(err)
+	}
+	if token.Tag != t {
+		panic("token not match")
+	}
+}
+
+func (sp *SQLParser) isMatch(t lexer.Tag) bool {
+	token, err := sp.sqlLexer.Scan()
+	if err != nil {
+		panic(err)
+	}
+	if token.Tag != t {
+		return false
+	}
+	return true
+}
+
+func (sp *SQLParser) SelectList() []string {
+	l := make([]string, 0)
+	_, field := sp.Field()
+	l = append(l, field)
+	if sp.isMatch(lexer.COMMA) {
+		fields := sp.SelectList()
+		l = append(l, fields...)
+	} else {
+		sp.sqlLexer.ReverseScan()
+	}
+
+	return l
+}
+
+func (sp *SQLParser) TableList() []string {
+	l := make([]string, 0)
+	sp.checkToken(lexer.ID)
+	l = append(l, sp.sqlLexer.Lexeme)
+	if sp.isMatch(lexer.COMMA) {
+		tables := sp.TableList()
+		l = append(l, tables...)
+	} else {
+		sp.sqlLexer.ReverseScan()
+	}
+	return l
 }

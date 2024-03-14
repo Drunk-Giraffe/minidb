@@ -1,6 +1,7 @@
 package metadata_manager
 
 import (
+	"query"
 	rm "record_manager"
 	"tx"
 )
@@ -15,7 +16,7 @@ type ViewManager struct {
 }
 
 func NewViewManager(isNew bool, tbl_mgr *TableManager, tx *tx.Transaction) *ViewManager {
-	vm := &ViewManager{tbl_mgr : tbl_mgr}
+	vm := &ViewManager{tbl_mgr: tbl_mgr}
 
 	if isNew {
 		sch := rm.NewSchema()
@@ -30,7 +31,7 @@ func NewViewManager(isNew bool, tbl_mgr *TableManager, tx *tx.Transaction) *View
 
 func (vm *ViewManager) CreateView(viewname string, viewdef string, tx *tx.Transaction) {
 	layout := vm.tbl_mgr.GetTableLayout("viewcat", tx)
-	ts := rm.NewTableScan(tx , "viewcat", layout)
+	ts := query.NewTableScan(tx, "viewcat", layout)
 	ts.Insert()
 	ts.SetString("viewname", viewname)
 	ts.SetString("viewdef", viewdef)
@@ -39,7 +40,7 @@ func (vm *ViewManager) CreateView(viewname string, viewdef string, tx *tx.Transa
 
 func (vm *ViewManager) GetViewDef(viewname string, tx *tx.Transaction) string {
 	layout := vm.tbl_mgr.GetTableLayout("viewcat", tx)
-	ts := rm.NewTableScan(tx, "viewcat", layout)
+	ts := query.NewTableScan(tx, "viewcat", layout)
 	for ts.Next() {
 		if ts.GetString("viewname") == viewname {
 			viewdef := ts.GetString("viewdef")

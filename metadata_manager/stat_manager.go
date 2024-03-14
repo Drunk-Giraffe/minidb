@@ -1,6 +1,7 @@
 package metadata_manager
 
 import (
+	"query"
 	rm "record_manager"
 	"sync"
 	"tx"
@@ -73,7 +74,7 @@ func (sm *StatManager) refreshStatistics(tx *tx.Transaction) {
 	sm.tableStats = make(map[string]*StatInfo)
 	sm.numCalls = 0
 	tcatLayout := sm.tblMgr.GetTableLayout("tblcat", tx)
-	tcat := rm.NewTableScan(tx, "tblcat", tcatLayout)
+	tcat := query.NewTableScan(tx, "tblcat", tcatLayout)
 	for tcat.Next() {
 		tblName := tcat.GetString("tblname")
 		layout := sm.tblMgr.GetTableLayout(tblName, tx)
@@ -85,7 +86,7 @@ func (sm *StatManager) refreshStatistics(tx *tx.Transaction) {
 func (sm *StatManager) calTableStats(tblName string, layout *rm.Layout, tx *tx.Transaction) *StatInfo {
 	numRecs := 0
 	numBlocks := 0
-	ts := rm.NewTableScan(tx, tblName, layout)
+	ts := query.NewTableScan(tx, tblName, layout)
 	for ts.Next() {
 		numRecs++
 		numBlocks = ts.GetRid().BlockID() + 1

@@ -1,6 +1,7 @@
 package metadata_manager
 
 import (
+	"query"
 	rm "record_manager"
 	"tx"
 )
@@ -42,13 +43,13 @@ func NewTableManager(isNew bool, tx *tx.Transaction) *TableManager {
 
 func (tm *TableManager) CreateTable(tableName string, schema *rm.Schema, tx *tx.Transaction) {
 	layout := rm.NewLayoutWithSchema(schema)
-	tcat := rm.NewTableScan(tx, "tblcat", tm.tcatLayout)
+	tcat := query.NewTableScan(tx, "tblcat", tm.tcatLayout)
 	tcat.Insert()
 	tcat.SetString("table_name", tableName)
 	tcat.SetInt("slot_size", layout.SlotSize())
 	tcat.Close()
 
-	fcat := rm.NewTableScan(tx, "fldcat", tm.fcatLayout)
+	fcat := query.NewTableScan(tx, "fldcat", tm.fcatLayout)
 	for _, field_name := range schema.Fields() {
 		fcat.Insert()
 		fcat.SetString("table_name", tableName)
@@ -62,7 +63,7 @@ func (tm *TableManager) CreateTable(tableName string, schema *rm.Schema, tx *tx.
 
 func (tm *TableManager) GetTableLayout(tableName string, tx *tx.Transaction) *rm.Layout {
 	size := -1
-	tcat := rm.NewTableScan(tx, "tblcat", tm.tcatLayout)
+	tcat := query.NewTableScan(tx, "tblcat", tm.tcatLayout)
 	for tcat.Next() {
 		if tcat.GetString("table_name") == tableName {
 			size = tcat.GetInt("slot_size")
@@ -73,7 +74,7 @@ func (tm *TableManager) GetTableLayout(tableName string, tx *tx.Transaction) *rm
 
 	sch := rm.NewSchema()
 	offsets := make(map[string]int)
-	fcat := rm.NewTableScan(tx, "fldcat", tm.fcatLayout)
+	fcat := query.NewTableScan(tx, "fldcat", tm.fcatLayout)
 	for fcat.Next() {
 		if fcat.GetString("table_name") == tableName {
 			field_name := fcat.GetString("field_name")
